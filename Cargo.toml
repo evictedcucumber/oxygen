@@ -1,0 +1,11 @@
+[package]
+name = "oxygen-compiler"
+version = "0.0.0"
+edition = "2024"
+description = ""
+repository = "https://github.com/evictedcucumber/oxygen-compiler"
+license = "MIT"
+
+[[bin]]
+name = "o2c"
+path = "src/main.rs"
