@@ -1,0 +1,15 @@
+root = true
+
+[*.rs]
+indent_style = space
+indent_size = 4
+max_line_length = 80
+
+[*.o2]
+indent_style = space
+indent_size = 4
+max_line_length = 80
+
+[Makefile]
+indent_style = tab
+indent_size = 4
