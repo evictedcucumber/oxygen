@@ -1,0 +1,10 @@
+name: o2c
+root: ./
+
+pre_window: nix develop --command ${SHELL}
+
+startup_window: neovim
+
+windows:
+  - neovim: nvim
+  - term: clear
