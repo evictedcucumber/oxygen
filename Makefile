@@ -1,11 +1,17 @@
-.PHONY: test-cov test-build http
+.PHONY: test_coverage clean all
 
-all: test-cov
+TARGET_DIR := target/debug
+COVERAGE_DIR := $(TARGET_DIR)/coverage
+PROFRAW := $(TARGET_DIR)/coverage.profraw
+LCOV := $(TARGET_DIR)/lcov
 
-test-build:
-	RUSTFLAGS="-C instrument-coverage=all" LLVM_PROFILE_FILE="coverage/default.profraw" cargo test
+all: test_coverage
 
-test-cov: test-build
-	cargo profdata -- merge -sparse coverage/default.profraw -o coverage/default.profdata
-	PATH=$$PATH:$$HOME/.cargo/bin cargo cov -- show --Xdemangler=rustfilt --ignore-filename-regex='./cargo/' --instr-profile=coverage/default.profdata \
-		--format=html --output-dir=coverage/html $(shell find target/debug/deps -type f -name "o2c*" -not -name "*.d")
+clean:
+	cargo clean
+
+test_coverage:
+	RUSTFLAGS="-C instrument-coverage=all" LLVM_PROFILE_FILE="$(PROFRAW)" cargo test
+	grcov . -s . --binary-path $(TARGET_DIR) -t lcov --branch --ignore-not-existing -o $(TARGET_DIR)
+	genhtml -o $(COVERAGE_DIR) --show-details --ignore-errors source --legend $(LCOV)
+

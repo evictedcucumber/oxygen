@@ -19,7 +19,11 @@
     devShells.${system}.default = pkgs.mkShell {
       name = "o2c";
       packages = with pkgs; [
-        cargo-binutils
+        openssl
+        grcov
+        lcov
+        llvm
+        valgrind
         (rust-bin.stable.latest.default.override {
           extensions = ["rust-src" "rust-analyzer" "llvm-tools-preview"];
         })
