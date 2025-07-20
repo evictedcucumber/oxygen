@@ -8,7 +8,7 @@ A custom language written in rust.
 ## Build
 
 ```sh
-cargo build
+make build
 ```
 
 ## Usage
@@ -19,15 +19,28 @@ cargo build
 ## Tests
 
 ```sh
-cargo test
+make test
 ```
 
 With coverage:
 
 ```sh
-make
+make test_with_cov
+```
+
+## Docs
+
+```sh
+make docs
+```
+
+## Memcheck
+
+```sh
+make memcheck
 ```
 
 ## References
+
 - [@tsoding](https://github.com/tsoding)'s [b](https://github.com/tsoding/b) compiler.
 - [@orosmatthew](https://github.com/orosmatthew)'s [hydrogen-cpp](https://github.com/orosmatthew/hydrogen-cpp/tree/master) compiler.
