@@ -25,7 +25,7 @@
         llvm
         valgrind
         (rust-bin.stable.latest.default.override {
-          extensions = ["rust-src" "rust-analyzer" "llvm-tools-preview"];
+          extensions = ["rust-src" "llvm-tools-preview"];
         })
       ];
     };
