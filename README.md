@@ -1,6 +1,8 @@
 # Oxygen Language
 
-[![Project CI](https://github.com/evictedcucumber/oxygen/actions/workflows/main.yml/badge.svg)](https://github.com/evictedcucumber/oxygen/actions/workflows/main.yml)
+[![CI](https://github.com/evictedcucumber/oxygen/actions/workflows/ci.yml/badge.svg)](https://github.com/evictedcucumber/oxygen/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/evictedcucumber/oxygen/actions/workflows/github-code-scanning/codeql/badge.svg?branch=main)](https://github.com/evictedcucumber/oxygen/actions/workflows/github-code-scanning/codeql)
+[![Dependabot Updates](https://github.com/evictedcucumber/oxygen/actions/workflows/dependabot/dependabot-updates/badge.svg?branch=main)](https://github.com/evictedcucumber/oxygen/actions/workflows/dependabot/dependabot-updates)
 
 A custom language written in rust.
 
