@@ -2,7 +2,7 @@ pub mod token;
 
 use token::{Token, TokenType};
 
-use crate::error::lexer::LexerError;
+use crate::error::LexerError;
 
 /// A representation of the current state of the lexer.
 #[derive(Debug, PartialEq, Eq)]
@@ -36,8 +36,7 @@ impl LexerState {
 /// let content = "func();";
 /// let mut tokens: Vec<Token> = Vec::new();
 /// let mut state = LexerState::new();
-/// let mut errors: Vec<LexerError> = Vec::new();
-/// tokenize(content, &mut tokens, &mut state, &mut errors);
+/// tokenize(content, &mut tokens, &mut state);
 ///
 /// assert_eq!(tokens.len(), 4);
 /// assert_eq!(
@@ -48,7 +47,6 @@ impl LexerState {
 ///     tokens.last().unwrap(),
 ///     &Token::new(TokenType::SymbolSemiColon, 1, 1)
 /// );
-/// assert!(errors.is_empty());
 /// assert_eq!(state.line, 2);
 /// assert_eq!(state.column, 1);
 /// ```
@@ -56,8 +54,7 @@ pub fn tokenize(
     content: &str,
     tokens: &mut Vec<Token>,
     state: &mut LexerState,
-    errors: &mut Vec<LexerError>,
-) {
+) -> Result<(), LexerError> {
     let mut index: usize = 0;
     let mut buffer = String::new();
     let content_vec: Vec<_> = content.chars().collect();
@@ -91,16 +88,9 @@ pub fn tokenize(
                         c = content_vec[index];
                     }
                     match buffer.as_str() {
-                        "return" => {
-                            push_col_offset(tokens, state, TokenType::KeywordReturn, "return".len())
-                        }
-                        "int" => push_col_offset(tokens, state, TokenType::KeywordInt, "int".len()),
-                        some => push_col_offset(
-                            tokens,
-                            state,
-                            TokenType::new_some_name(some),
-                            some.len(),
-                        ),
+                        "return" => push_col_offset(tokens, state, TokenType::KeywordReturn),
+                        "int" => push_col_offset(tokens, state, TokenType::KeywordInt),
+                        some => push_col_offset(tokens, state, TokenType::new_some_name(some)),
                     }
                 } else if c.is_ascii_digit() {
                     loop {
@@ -116,15 +106,13 @@ pub fn tokenize(
                         }
                         c = content_vec[index];
                     }
-                    push_col_offset(tokens, state, TokenType::new_lit_int(&buffer), buffer.len());
+                    push_col_offset(tokens, state, TokenType::new_lit_int(&buffer));
                 } else {
-                    errors.push(LexerError::UnknownCharacter {
+                    return Err(LexerError::UnknownCharacter {
                         the_char: c,
-                        the_line: content.to_string(),
-                        line: state.line,
-                        column: state.column,
+                        at_line: state.line,
+                        at_column: state.column,
                     });
-                    state.column += 1;
                 }
             }
         }
@@ -138,6 +126,8 @@ pub fn tokenize(
 
     state.line += 1;
     state.column = 1;
+
+    Ok(())
 }
 
 /// Push a [`Token`] with the given [`TokenType`] into the `tokens` vec and
@@ -170,19 +160,15 @@ fn push_inc_col(tokens: &mut Vec<Token>, state: &mut LexerState, token_type: Tok
 /// let mut tokens: Vec<Token> = Vec::new();
 /// let mut state = LexerState::new();
 ///
-/// push_col_offset(&mut tokens, &mut state, TokenType::KeywordInt, "int".len());
+/// push_col_offset(&mut tokens, &mut state, TokenType::KeywordInt);
 ///
 /// assert_eq!(
-///     tokens.first().unwrap(), 
+///     tokens.first().unwrap(),
 ///     &Token::new(TokenType::KeywordInt, 1, 1)
 /// );
 /// ```
-fn push_col_offset(
-    tokens: &mut Vec<Token>,
-    state: &mut LexerState,
-    token_type: TokenType,
-    offset: usize,
-) {
+fn push_col_offset(tokens: &mut Vec<Token>, state: &mut LexerState, token_type: TokenType) {
+    let offset = token_type.to_column_offset();
     tokens.push(Token::new(token_type, state.line, state.column - offset))
 }
 
@@ -215,12 +201,7 @@ mod tests {
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState { line: 1, column: 7 };
 
-        push_col_offset(
-            &mut tokens,
-            &mut state,
-            TokenType::KeywordReturn,
-            "return".len(),
-        );
+        push_col_offset(&mut tokens, &mut state, TokenType::KeywordReturn);
 
         assert_eq!(
             tokens.first().unwrap(),
@@ -235,11 +216,10 @@ mod tests {
         let content = "(";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
+        assert!(res.is_ok());
     }
 
     #[test]
@@ -247,11 +227,10 @@ mod tests {
         let content = ")";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
+        assert!(res.is_ok());
     }
 
     #[test]
@@ -259,11 +238,10 @@ mod tests {
         let content = "{";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
+        assert!(res.is_ok());
     }
 
     #[test]
@@ -271,11 +249,10 @@ mod tests {
         let content = "}";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
+        assert!(res.is_ok());
     }
 
     #[test]
@@ -283,41 +260,10 @@ mod tests {
         let content = ";";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
-    }
-
-    #[test]
-    fn should_tokenize_space() {
-        let content = " ";
-        let mut tokens: Vec<Token> = Vec::new();
-        let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
-
-        tokenize(content, &mut tokens, &mut state, &mut errors);
-
-        assert!(errors.is_empty());
-        assert_eq!(tokens.len(), 0);
-        assert_eq!(state.line, 2);
-        assert_eq!(state.column, 1);
-    }
-
-    #[test]
-    fn should_fill_errors_vec() {
-        let content = "⫯";
-        let mut tokens: Vec<Token> = Vec::new();
-        let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
-
-        tokenize(content, &mut tokens, &mut state, &mut errors);
-
-        assert!(!errors.is_empty());
-        assert_eq!(tokens.len(), 0);
-        assert_eq!(state.line, 2);
-        assert_eq!(state.column, 1);
+        assert!(res.is_ok());
     }
 
     #[test]
@@ -325,11 +271,10 @@ mod tests {
         let content = "return";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
+        assert!(res.is_ok());
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
@@ -344,11 +289,10 @@ mod tests {
         let content = "int";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
+        assert!(res.is_ok());
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
@@ -363,11 +307,10 @@ mod tests {
         let content = "name";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
+        assert!(res.is_ok());
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
@@ -382,11 +325,10 @@ mod tests {
         let content = "n9me";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
+        assert!(res.is_ok());
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
@@ -401,11 +343,10 @@ mod tests {
         let content = "_name";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
+        assert!(res.is_ok());
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
@@ -420,11 +361,10 @@ mod tests {
         let content = "n_ame";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
+        assert!(res.is_ok());
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
@@ -439,11 +379,10 @@ mod tests {
         let content = "99";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
-        tokenize(content, &mut tokens, &mut state, &mut errors);
+        let res = tokenize(content, &mut tokens, &mut state);
 
-        assert!(errors.is_empty());
+        assert!(res.is_ok());
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
@@ -454,17 +393,27 @@ mod tests {
     }
 
     #[test]
+    fn should_tokenize_to_err() {
+        let content = "⫯";
+        let mut tokens: Vec<Token> = Vec::new();
+        let mut state = LexerState::new();
+
+        let res = tokenize(content, &mut tokens, &mut state);
+
+        assert!(res.is_err());
+    }
+
+    #[test]
     fn should_tokenize() {
         let content = "int main() {\n    return 0;\n}";
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
-        let mut errors: Vec<LexerError> = Vec::new();
 
         for line in content.split('\n') {
-            tokenize(line, &mut tokens, &mut state, &mut errors);
+            let res = tokenize(line, &mut tokens, &mut state);
+            assert!(res.is_ok());
         }
 
-        assert!(errors.is_empty());
         assert_eq!(tokens.len(), 9);
         assert_eq!(
             tokens.first().unwrap(),

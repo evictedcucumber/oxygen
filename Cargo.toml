@@ -10,3 +10,6 @@ default-run = "o2c"
 [[bin]]
 name = "o2c"
 path = "src/main.rs"
+
+[dependencies]
+thiserror = "2.0.12"
