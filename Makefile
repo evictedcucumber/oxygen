@@ -16,13 +16,17 @@ test:
 TARGET_DIR := target/debug
 COVERAGE_DIR := $(TARGET_DIR)/coverage
 PROFRAW := $(TARGET_DIR)/coverage.profraw
-LCOV := $(TARGET_DIR)/lcov
+LCOV := $(TARGET_DIR)/lcov.info
 
 .PHONY: test_with_cov
 test_with_cov: 
-	RUSTFLAGS="-C instrument-coverage=all" LLVM_PROFILE_FILE="$(PROFRAW)" cargo test
-	grcov . -s . --binary-path $(TARGET_DIR) -t lcov --branch --ignore-not-existing -o $(TARGET_DIR)
-	genhtml -o $(COVERAGE_DIR) --show-details --ignore-errors source --legend $(LCOV) -rc genhtml_dark_mode=1
+	RUSTFLAGS="-C instrument-coverage=all" \
+		LLVM_PROFILE_FILE="$(PROFRAW)" cargo test
+	grcov . -s . --binary-path $(TARGET_DIR) -t lcov --branch \
+		--ignore-not-existing --ignore "/*" --ignore "target/*" \
+		-o $(LCOV)
+	genhtml -o $(COVERAGE_DIR) --show-details --ignore-errors source \
+		--legend $(LCOV) -rc genhtml_dark_mode=1
 
 .PHONY: gen_info
 gen_info: docs test_with_cov
