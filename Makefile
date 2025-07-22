@@ -19,7 +19,7 @@ PROFRAW := $(TARGET_DIR)/coverage.profraw
 LCOV := $(TARGET_DIR)/lcov.info
 
 .PHONY: test_with_cov
-test_with_cov: 
+test_with_cov: clean
 	RUSTFLAGS="-C instrument-coverage=all" \
 		LLVM_PROFILE_FILE="$(PROFRAW)" cargo test
 	grcov . -s . --binary-path $(TARGET_DIR) -t lcov --branch \
