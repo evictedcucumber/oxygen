@@ -32,7 +32,7 @@ test_with_cov:
 gen_info: docs test_with_cov
 
 BINARY := $(TARGET_DIR)/o2c
-MEMCHECK_BINARY_ARGS := --display-tokens
+MEMCHECK_BINARY_ARGS := --display-tokens ./examples/basic.o2
 
 .PHONY: memcheck
 memcheck: build
