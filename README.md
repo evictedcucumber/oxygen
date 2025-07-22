@@ -1,5 +1,7 @@
 # Oxygen Language
 
+[![Project CI](https://github.com/evictedcucumber/oxygen/actions/workflows/main.yml/badge.svg)](https://github.com/evictedcucumber/oxygen/actions/workflows/main.yml)
+
 A custom language written in rust.
 
 > [!WARNING]
