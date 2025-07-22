@@ -27,6 +27,7 @@
         (rust-bin.stable.latest.default.override {
           extensions = ["rust-src" "llvm-tools-preview"];
         })
+        cargo-audit
       ];
     };
   };
