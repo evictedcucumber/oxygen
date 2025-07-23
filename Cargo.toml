@@ -2,7 +2,7 @@
 name = "oxygen"
 version = "0.0.0"
 edition = "2024"
-description = ""
+description = "The Oxygen compiler used to compile oxygen files into runnable binaries"
 repository = "https://github.com/evictedcucumber/oxygen-compiler"
 license = "MIT"
 default-run = "o2c"

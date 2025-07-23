@@ -53,4 +53,10 @@ mod tests {
     fn should_err_validate_oxygen_file() {
         assert!(validate_oxygen_file("some").is_err())
     }
+
+    #[test]
+    fn validate_cli() {
+        use clap::CommandFactory;
+        Cli::command().debug_assert();
+    }
 }
