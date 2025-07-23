@@ -23,9 +23,9 @@ PROFRAW := $(TARGET_DIR)/coverage.profraw
 LCOV := $(TARGET_DIR)/lcov.info
 
 .PHONY: test_with_cov
-test_with_cov: clean
+test_with_cov: clean_cov
 	RUSTFLAGS="-C instrument-coverage=all" LLVM_PROFILE_FILE="$(PROFRAW)" cargo test
-	grcov . -s . --binary-path $(TARGET_DIR) -t lcov --branch --ignore-not-existing --ignore "/*" --ignore "target/*" -o $(LCOV)
+	grcov . -s . --binary-path $(TARGET_DIR) -t lcov --branch --ignore-not-existing --ignore "src/main.rs" --ignore "/*" --ignore "target/*" -o $(LCOV)
 	genhtml -o $(COVERAGE_DIR) --show-details --ignore-errors source --legend $(LCOV) -rc genhtml_dark_mode=1
 
 BINARY := $(TARGET_DIR)/o2c
@@ -38,3 +38,7 @@ memcheck: build
 .PHONY: clean
 clean:
 	cargo clean
+
+.PHONY: clean_cov
+clean_cov:
+	rm -rf $(COVERAGE_DIR) $(PROFRAW) $(LCOV)
