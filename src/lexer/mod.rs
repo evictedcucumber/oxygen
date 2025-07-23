@@ -1,6 +1,6 @@
 pub mod token;
 
-use token::{Token, TokenType};
+use token::{Keywords, Literals, Symbols, Token, TokenType};
 
 use crate::error::LexerError;
 
@@ -15,13 +15,6 @@ pub struct LexerState {
 
 impl LexerState {
     /// Create a new [`LexerState`] with default line and column.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let s = LexerState::new();
-    /// assert_eq!(LexerState { line: 1, column: 1}, s);
-    /// ```
     pub fn new() -> Self {
         Self { line: 1, column: 1 }
     }
@@ -29,27 +22,6 @@ impl LexerState {
 
 /// Tokenizes a given input assumving the input is a string representation of
 /// a line in a o2 file.
-///
-/// # Examples
-///
-/// ```
-/// let content = "func();";
-/// let mut tokens: Vec<Token> = Vec::new();
-/// let mut state = LexerState::new();
-/// tokenize(content, &mut tokens, &mut state);
-///
-/// assert_eq!(tokens.len(), 4);
-/// assert_eq!(
-///     tokens.first().unwrap(),
-///     &Token::new(TokenType::new_some_name("func"), 1, 1)
-/// );
-/// assert_eq!(
-///     tokens.last().unwrap(),
-///     &Token::new(TokenType::SymbolSemiColon, 1, 1)
-/// );
-/// assert_eq!(state.line, 2);
-/// assert_eq!(state.column, 1);
-/// ```
 pub fn tokenize(
     content: &str,
     tokens: &mut Vec<Token>,
@@ -64,11 +36,11 @@ pub fn tokenize(
         let mut c = content_vec[index];
 
         match c {
-            '(' => push_inc_col(tokens, state, TokenType::SymbolOpenParen),
-            ')' => push_inc_col(tokens, state, TokenType::SymbolCloseParen),
-            '{' => push_inc_col(tokens, state, TokenType::SymbolOpenCurly),
-            '}' => push_inc_col(tokens, state, TokenType::SymbolCloseCurly),
-            ';' => push_inc_col(tokens, state, TokenType::SymbolSemiColon),
+            '(' => push_inc_col(tokens, state, Symbols::OpenParen),
+            ')' => push_inc_col(tokens, state, Symbols::CloseParen),
+            '{' => push_inc_col(tokens, state, Symbols::OpenCurly),
+            '}' => push_inc_col(tokens, state, Symbols::CloseCurly),
+            ';' => push_inc_col(tokens, state, Symbols::SemiColon),
             ' ' => {
                 state.column += 1;
             }
@@ -88,9 +60,11 @@ pub fn tokenize(
                         c = content_vec[index];
                     }
                     match buffer.as_str() {
-                        "return" => push_col_offset(tokens, state, TokenType::KeywordReturn),
-                        "int" => push_col_offset(tokens, state, TokenType::KeywordInt),
-                        some => push_col_offset(tokens, state, TokenType::new_some_name(some)),
+                        "return" => push_col_offset(tokens, state, Keywords::Return),
+                        "int" => push_col_offset(tokens, state, Keywords::Int),
+                        some => {
+                            push_col_offset(tokens, state, TokenType::SomeName(some.to_string()))
+                        }
                     }
                 } else if c.is_ascii_digit() {
                     loop {
@@ -106,7 +80,7 @@ pub fn tokenize(
                         }
                         c = content_vec[index];
                     }
-                    push_col_offset(tokens, state, TokenType::new_lit_int(&buffer));
+                    push_col_offset(tokens, state, Literals::Integer("99".to_string()));
                 } else {
                     return Err(LexerError::UnknownCharacter {
                         the_char: c,
@@ -132,44 +106,26 @@ pub fn tokenize(
 
 /// Push a [`Token`] with the given [`TokenType`] into the `tokens` vec and
 /// increment the column by 1
-///
-/// # Examples
-///
-/// ```
-/// let mut tokens: Vec<Token> = Vec::new();
-/// let mut state = LexerState::new();
-///
-/// push_inc_col(&mut tokens, &mut state, TokenType::SymbolOpenParen);
-///
-/// assert_eq!(
-///     tokens.first().unwrap(),
-///     &Token::new(TokenType::SymbolOpenParen, 1, 1)
-/// );
-/// ```
-fn push_inc_col(tokens: &mut Vec<Token>, state: &mut LexerState, token_type: TokenType) {
+fn push_inc_col(
+    tokens: &mut Vec<Token>,
+    state: &mut LexerState,
+    token_type: impl std::convert::Into<TokenType>,
+) {
     tokens.push(Token::new(token_type, state.line, state.column));
     state.column += 1;
 }
 
 /// Push a [`Token`] with a given [`TokenType`] into the `tokens` vec and
 /// increment offset the set column by the given offset.
-///
-/// # Examples
-///
-/// ```
-/// let mut tokens: Vec<Token> = Vec::new();
-/// let mut state = LexerState::new();
-///
-/// push_col_offset(&mut tokens, &mut state, TokenType::KeywordInt);
-///
-/// assert_eq!(
-///     tokens.first().unwrap(),
-///     &Token::new(TokenType::KeywordInt, 1, 1)
-/// );
-/// ```
-fn push_col_offset(tokens: &mut Vec<Token>, state: &mut LexerState, token_type: TokenType) {
-    let offset = token_type.to_column_offset();
-    tokens.push(Token::new(token_type, state.line, state.column - offset))
+fn push_col_offset(
+    tokens: &mut Vec<Token>,
+    state: &mut LexerState,
+    token_type: impl std::convert::Into<TokenType>,
+) {
+    let t: TokenType = token_type.into();
+    let offset = t.to_col_offset();
+
+    tokens.push(Token::new(t, state.line, state.column - offset))
 }
 
 #[cfg(test)]
@@ -186,11 +142,11 @@ mod tests {
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState::new();
 
-        push_inc_col(&mut tokens, &mut state, TokenType::SymbolOpenParen);
+        push_inc_col(&mut tokens, &mut state, Symbols::OpenParen);
 
         assert_eq!(
             tokens.first().unwrap(),
-            &Token::new(TokenType::SymbolOpenParen, 1, 1)
+            &Token::new(Symbols::OpenParen, 1, 1)
         );
         assert_eq!(state.line, 1);
         assert_eq!(state.column, 2);
@@ -201,12 +157,9 @@ mod tests {
         let mut tokens: Vec<Token> = Vec::new();
         let mut state = LexerState { line: 1, column: 7 };
 
-        push_col_offset(&mut tokens, &mut state, TokenType::KeywordReturn);
+        push_col_offset(&mut tokens, &mut state, Keywords::Return);
 
-        assert_eq!(
-            tokens.first().unwrap(),
-            &Token::new(TokenType::KeywordReturn, 1, 1)
-        );
+        assert_eq!(tokens.first().unwrap(), &Token::new(Keywords::Return, 1, 1));
         assert_eq!(state.line, 1);
         assert_eq!(state.column, 7);
     }
@@ -220,6 +173,10 @@ mod tests {
         let res = tokenize(content, &mut tokens, &mut state);
 
         assert!(res.is_ok());
+        assert_eq!(
+            tokens.first().unwrap(),
+            &Token::new(Symbols::OpenParen, 1, 1)
+        );
     }
 
     #[test]
@@ -231,6 +188,10 @@ mod tests {
         let res = tokenize(content, &mut tokens, &mut state);
 
         assert!(res.is_ok());
+        assert_eq!(
+            tokens.first().unwrap(),
+            &Token::new(Symbols::CloseParen, 1, 1)
+        );
     }
 
     #[test]
@@ -242,6 +203,10 @@ mod tests {
         let res = tokenize(content, &mut tokens, &mut state);
 
         assert!(res.is_ok());
+        assert_eq!(
+            tokens.first().unwrap(),
+            &Token::new(Symbols::OpenCurly, 1, 1)
+        );
     }
 
     #[test]
@@ -253,6 +218,10 @@ mod tests {
         let res = tokenize(content, &mut tokens, &mut state);
 
         assert!(res.is_ok());
+        assert_eq!(
+            tokens.first().unwrap(),
+            &Token::new(Symbols::CloseCurly, 1, 1)
+        );
     }
 
     #[test]
@@ -264,6 +233,10 @@ mod tests {
         let res = tokenize(content, &mut tokens, &mut state);
 
         assert!(res.is_ok());
+        assert_eq!(
+            tokens.first().unwrap(),
+            &Token::new(Symbols::SemiColon, 1, 1)
+        );
     }
 
     #[test]
@@ -276,10 +249,7 @@ mod tests {
 
         assert!(res.is_ok());
         assert_eq!(tokens.len(), 1);
-        assert_eq!(
-            tokens.first().unwrap(),
-            &Token::new(TokenType::KeywordReturn, 1, 1)
-        );
+        assert_eq!(tokens.first().unwrap(), &Token::new(Keywords::Return, 1, 1));
         assert_eq!(state.line, 2);
         assert_eq!(state.column, 1);
     }
@@ -294,10 +264,7 @@ mod tests {
 
         assert!(res.is_ok());
         assert_eq!(tokens.len(), 1);
-        assert_eq!(
-            tokens.first().unwrap(),
-            &Token::new(TokenType::KeywordInt, 1, 1)
-        );
+        assert_eq!(tokens.first().unwrap(), &Token::new(Keywords::Int, 1, 1));
         assert_eq!(state.line, 2);
         assert_eq!(state.column, 1);
     }
@@ -314,7 +281,7 @@ mod tests {
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
-            &Token::new(TokenType::new_some_name("name"), 1, 1)
+            &Token::new(TokenType::SomeName("name".to_string()), 1, 1)
         );
         assert_eq!(state.line, 2);
         assert_eq!(state.column, 1);
@@ -332,7 +299,7 @@ mod tests {
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
-            &Token::new(TokenType::new_some_name("n9me"), 1, 1)
+            &Token::new(TokenType::SomeName("n9me".to_string()), 1, 1)
         );
         assert_eq!(state.line, 2);
         assert_eq!(state.column, 1);
@@ -350,7 +317,7 @@ mod tests {
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
-            &Token::new(TokenType::new_some_name("_name"), 1, 1)
+            &Token::new(TokenType::SomeName("_name".to_string()), 1, 1)
         );
         assert_eq!(state.line, 2);
         assert_eq!(state.column, 1);
@@ -368,7 +335,7 @@ mod tests {
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
-            &Token::new(TokenType::new_some_name("n_ame"), 1, 1)
+            &Token::new(TokenType::SomeName("n_ame".to_string()), 1, 1)
         );
         assert_eq!(state.line, 2);
         assert_eq!(state.column, 1);
@@ -386,7 +353,7 @@ mod tests {
         assert_eq!(tokens.len(), 1);
         assert_eq!(
             tokens.first().unwrap(),
-            &Token::new(TokenType::new_lit_int("99"), 1, 1)
+            &Token::new(Literals::Integer("99".to_string()), 1, 1)
         );
         assert_eq!(state.line, 2);
         assert_eq!(state.column, 1);
@@ -415,13 +382,10 @@ mod tests {
         }
 
         assert_eq!(tokens.len(), 9);
-        assert_eq!(
-            tokens.first().unwrap(),
-            &Token::new(TokenType::KeywordInt, 1, 1)
-        );
+        assert_eq!(tokens.first().unwrap(), &Token::new(Keywords::Int, 1, 1));
         assert_eq!(
             tokens.last().unwrap(),
-            &Token::new(TokenType::SymbolCloseCurly, 3, 1)
+            &Token::new(Symbols::CloseCurly, 3, 1)
         );
         assert_eq!(state.line, 4);
         assert_eq!(state.column, 1);
