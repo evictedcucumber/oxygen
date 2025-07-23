@@ -32,13 +32,6 @@ pub struct Cli {
 }
 
 /// Validates that a given string is a oxygen filename.
-///
-/// # Examples
-///
-/// ```
-/// assert!(validate_oxygen_file("some.o2").is_ok());
-/// assert!(validate_oxygen_file("some").is_err());
-/// ```
 fn validate_oxygen_file(s: &str) -> Result<PathBuf, String> {
     if s.ends_with(".o2") {
         Ok(PathBuf::from(s))
