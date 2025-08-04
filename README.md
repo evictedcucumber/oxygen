@@ -17,7 +17,7 @@ make build
 
 ## Usage
 
-> [!CAUTION]
+> [!WARNING]
 > TODO
 
 ## Tests
