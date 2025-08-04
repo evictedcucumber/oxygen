@@ -1,6 +1,6 @@
 pub mod token;
 
-use token::{Keywords, Literals, Symbols, Token, TokenType};
+use token::{ColumnOffset, Keywords, Literals, Symbols, Token, TokenType, Types};
 
 use crate::error::LexerError;
 
@@ -61,7 +61,7 @@ pub fn tokenize(
                     }
                     match buffer.as_str() {
                         "return" => push_col_offset(tokens, state, Keywords::Return),
-                        "int" => push_col_offset(tokens, state, Keywords::Int),
+                        "int" => push_col_offset(tokens, state, Types::Int),
                         some => {
                             push_col_offset(tokens, state, TokenType::SomeName(some.to_string()))
                         }
@@ -264,7 +264,7 @@ mod tests {
 
         assert!(res.is_ok());
         assert_eq!(tokens.len(), 1);
-        assert_eq!(tokens.first().unwrap(), &Token::new(Keywords::Int, 1, 1));
+        assert_eq!(tokens.first().unwrap(), &Token::new(Types::Int, 1, 1));
         assert_eq!(state.line, 2);
         assert_eq!(state.column, 1);
     }
@@ -382,7 +382,7 @@ mod tests {
         }
 
         assert_eq!(tokens.len(), 9);
-        assert_eq!(tokens.first().unwrap(), &Token::new(Keywords::Int, 1, 1));
+        assert_eq!(tokens.first().unwrap(), &Token::new(Types::Int, 1, 1));
         assert_eq!(
             tokens.last().unwrap(),
             &Token::new(Symbols::CloseCurly, 3, 1)
