@@ -1,31 +1,26 @@
+pub trait ColumnOffset {
+    fn to_col_offset(&self) -> usize;
+}
+
 /// A representation of any literals.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Literals {
     /// Contains the value of the integer literal.
     Integer(String),
 }
 
-impl Literals {
-    /// Returns the col offset of the current literal.
-    pub fn to_col_offset(&self) -> usize {
+impl ColumnOffset for Literals {
+    fn to_col_offset(&self) -> usize {
+        use Literals::*;
+
         match self {
-            Literals::Integer(int) => int.len(),
+            Integer(int) => int.len(),
         }
     }
 }
 
-impl std::fmt::Display for Literals {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Literals::Integer(int) => format!("LiteralInteger({int})"),
-        };
-
-        write!(f, "{s}")
-    }
-}
-
 /// A representation of any symbols.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Symbols {
     /// Represents an `(`.
     OpenParen,
@@ -39,52 +34,47 @@ pub enum Symbols {
     SemiColon,
 }
 
-impl std::fmt::Display for Symbols {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Symbols::OpenParen => "SymbolOpenParen",
-            Symbols::CloseParen => "SymbolCloseParen",
-            Symbols::OpenCurly => "SymbolOpenCurly",
-            Symbols::CloseCurly => "SymbolCloseCurly",
-            Symbols::SemiColon => "SymbolSemiColon",
-        };
-
-        write!(f, "{s}")
+impl ColumnOffset for Symbols {
+    fn to_col_offset(&self) -> usize {
+        1
     }
 }
 
-/// A representation of any keywords.
-#[derive(Debug, PartialEq, Eq)]
-pub enum Keywords {
-    /// Represents the keyword `return`.
-    Return,
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Types {
     /// Represents the keyword `int`.
     Int,
 }
 
-impl Keywords {
-    /// Returns the column offset of the keyword.
-    pub fn to_col_offset(&self) -> usize {
+impl ColumnOffset for Types {
+    fn to_col_offset(&self) -> usize {
+        use Types::*;
+
         match self {
-            Keywords::Return => "return".len(),
-            Keywords::Int => "int".len(),
+            Int => 3,
         }
     }
 }
 
-impl std::fmt::Display for Keywords {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            Keywords::Return => "KeywordReturn",
-            Keywords::Int => "KeywordInt",
-        };
+/// A representation of any keywords.
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum Keywords {
+    /// Represents the keyword `return`.
+    Return,
+}
 
-        write!(f, "{s}")
+impl ColumnOffset for Keywords {
+    fn to_col_offset(&self) -> usize {
+        use Keywords::*;
+
+        match self {
+            Return => 6,
+        }
     }
 }
 
 /// A representation of a type of token.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum TokenType {
     /// Contains a literal from [`Literals`].
     Literal(Literals),
@@ -92,18 +82,22 @@ pub enum TokenType {
     Symbol(Symbols),
     /// Contains a keyword from [`Keywords`].
     Keyword(Keywords),
+    /// Contains a type from [`Types`].
+    Type(Types),
     /// Contains the name of some item as a [`String`].
     SomeName(String),
 }
 
-impl TokenType {
-    /// Returns the column offset of the [`TokenType`].
-    pub fn to_col_offset(&self) -> usize {
+impl ColumnOffset for TokenType {
+    fn to_col_offset(&self) -> usize {
+        use TokenType::*;
+
         match self {
-            TokenType::Literal(literal) => literal.to_col_offset(),
-            TokenType::Symbol(_) => 0,
-            TokenType::Keyword(keyword) => keyword.to_col_offset(),
-            TokenType::SomeName(name) => name.len(),
+            Literal(literal) => literal.to_col_offset(),
+            Symbol(symbol) => symbol.to_col_offset(),
+            Keyword(keyword) => keyword.to_col_offset(),
+            Type(t) => t.to_col_offset(),
+            SomeName(name) => name.len(),
         }
     }
 }
@@ -120,34 +114,27 @@ impl std::convert::From<Symbols> for TokenType {
     }
 }
 
+impl std::convert::From<Types> for TokenType {
+    fn from(value: Types) -> Self {
+        TokenType::Type(value)
+    }
+}
+
 impl std::convert::From<Keywords> for TokenType {
     fn from(value: Keywords) -> Self {
         TokenType::Keyword(value)
     }
 }
 
-impl std::fmt::Display for TokenType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let s = match self {
-            TokenType::Literal(literal) => format!("{literal}"),
-            TokenType::Symbol(symbol) => format!("{symbol}"),
-            TokenType::Keyword(keyword) => format!("{keyword}"),
-            TokenType::SomeName(name) => format!("SomeName({name})"),
-        };
-
-        write!(f, "{s}")
-    }
-}
-
 /// A representation of an accepted token from an Oxygen source file.
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Token {
     /// Contains the type of the token.
-    token_type: TokenType,
+    pub token_type: TokenType,
     /// Contains the line number where the token appears.
-    line: usize,
+    pub line: usize,
     /// Contains the column number where the token appears.
-    column: usize,
+    pub column: usize,
 }
 
 impl Token {
@@ -158,12 +145,6 @@ impl Token {
             line,
             column,
         }
-    }
-}
-
-impl std::fmt::Display for Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}:{}:{}", self.token_type, self.line, self.column)
     }
 }
 
@@ -184,55 +165,12 @@ mod tests {
     }
 
     #[test]
-    fn should_display_literals() {
-        assert_eq!(
-            Literals::Integer("99".to_string()).to_string(),
-            "LiteralInteger(99)"
-        )
-    }
-
-    #[test]
-    fn should_display_symbols() {
-        assert_eq!(Symbols::OpenParen.to_string(), "SymbolOpenParen");
-        assert_eq!(Symbols::CloseParen.to_string(), "SymbolCloseParen");
-        assert_eq!(Symbols::OpenCurly.to_string(), "SymbolOpenCurly");
-        assert_eq!(Symbols::CloseCurly.to_string(), "SymbolCloseCurly");
-        assert_eq!(Symbols::SemiColon.to_string(), "SymbolSemiColon");
-    }
-
-    #[test]
-    fn should_display_keywords() {
-        assert_eq!(Keywords::Return.to_string(), "KeywordReturn");
-        assert_eq!(Keywords::Int.to_string(), "KeywordInt");
-    }
-
-    #[test]
-    fn should_display_token_type() {
-        assert_eq!(
-            TokenType::from(Literals::Integer("99".to_string())).to_string(),
-            "LiteralInteger(99)"
-        );
-        assert_eq!(
-            TokenType::from(Symbols::OpenParen).to_string(),
-            "SymbolOpenParen"
-        );
-        assert_eq!(
-            TokenType::from(Keywords::Return).to_string(),
-            "KeywordReturn"
-        );
-        assert_eq!(
-            TokenType::SomeName("name".to_string()).to_string(),
-            "SomeName(name)"
-        );
-    }
-
-    #[test]
     fn should_get_col_offset_token_type() {
         assert_eq!(
             TokenType::from(Literals::Integer("99".to_string())).to_col_offset(),
             2
         );
-        assert_eq!(TokenType::from(Symbols::OpenParen).to_col_offset(), 0);
+        assert_eq!(TokenType::from(Symbols::OpenParen).to_col_offset(), 1);
         assert_eq!(TokenType::from(Keywords::Return).to_col_offset(), 6);
         assert_eq!(TokenType::SomeName("name".to_string()).to_col_offset(), 4);
     }
@@ -245,14 +183,10 @@ mod tests {
     #[test]
     fn should_get_col_offset_keywords() {
         assert_eq!(Keywords::Return.to_col_offset(), 6);
-        assert_eq!(Keywords::Int.to_col_offset(), 3)
     }
 
     #[test]
-    fn should_display_token() {
-        assert_eq!(
-            Token::new(Symbols::OpenParen, 1, 1).to_string(),
-            "SymbolOpenParen:1:1"
-        );
+    fn should_get_col_offset_types() {
+        assert_eq!(Types::Int.to_col_offset(), 3);
     }
 }
