@@ -13,4 +13,4 @@ path = "src/main.rs"
 
 [dependencies]
 clap = { version = "4.5.48", features = ["derive"] }
-thiserror = "2.0.12"
+thiserror = "2.0.17"
