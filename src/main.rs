@@ -1,4 +1,3 @@
-mod cmdline;
 mod error;
 mod lexer;
 mod parser;
@@ -15,7 +14,7 @@ use lexer::{LexerState, token::Token, tokenize};
 use parser::node::Statement;
 
 pub fn wrapper() -> Result<(), Error> {
-    let cli = cmdline::Cli::parse();
+    let cli = cmdline::O2CCli::parse();
 
     let oxygen_file = File::open(cli.oxygen_file)?;
 

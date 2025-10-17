@@ -35,6 +35,14 @@ MEMCHECK_BINARY_ARGS := --display-tokens ./examples/basic.o2
 memcheck: build
 	valgrind --leak-check=full --show-leak-kinds=all -s $(BINARY) $(MEMCHECK_BINARY_ARGS)
 
+COMPLETIONS_DIR := completions
+
+.PHONY: gen_completions
+gen_completions:
+	cargo run --bin oxygen -- completions fish > $(COMPLETIONS_DIR)/oxygen.fish
+	cargo run --bin oxygen -- completions bash > $(COMPLETIONS_DIR)/oxygen.bash
+	cargo run --bin oxygen -- completions zsh > $(COMPLETIONS_DIR)/oxygen.zsh
+
 .PHONY: clean
 clean:
 	cargo clean
@@ -42,3 +50,7 @@ clean:
 .PHONY: clean_cov
 clean_cov:
 	rm -rf $(COVERAGE_DIR) $(PROFRAW) $(LCOV)
+
+.PHONY: clean_completions
+clean_completions:
+	rm -rf $(COMPLETIONS)

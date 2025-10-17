@@ -1,11 +1,11 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, Subcommand, ValueEnum};
 
 /// Represents the posssible cmdline args using the [`clap`] crate.
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-pub struct Cli {
+pub struct O2CCli {
     /// Contains the optional path to place the output file.
     #[arg(
         short,
@@ -47,6 +47,28 @@ fn validate_oxygen_file(s: &str) -> Result<PathBuf, String> {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
+pub enum OxygenShells {
+    Fish,
+    Bash,
+    Zsh,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum OxygenCommands {
+    Completions {
+        #[arg(value_enum)]
+        shell: OxygenShells,
+    },
+}
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+pub struct OxygenCli {
+    #[command(subcommand)]
+    pub command: OxygenCommands,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -64,6 +86,6 @@ mod tests {
     #[test]
     fn validate_cli() {
         use clap::CommandFactory;
-        Cli::command().debug_assert();
+        O2CCli::command().debug_assert();
     }
 }
