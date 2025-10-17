@@ -35,3 +35,6 @@ jobs:
 
       - name: Memcheck
         run: nix develop --command make memcheck
+
+      - name: Completions
+        run: nix develop --command make gen_completions
