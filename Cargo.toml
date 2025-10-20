@@ -20,6 +20,6 @@ name = "cmdline"
 path = "src/cmdline.rs"
 
 [dependencies]
-clap = { version = "4.5.48", features = ["derive"] }
+clap = { version = "4.5.49", features = ["derive"] }
 thiserror = "2.0.17"
 clap_complete = "4.5.59"
